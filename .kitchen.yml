@@ -21,13 +21,11 @@ verifier:
 
 platforms:
   - name: mycsc-7.5
-  # - name: centos-7
-  # - name: ubuntu-16.04
 
 suites:
-  - name: default
+  - name: tcr_db
     run_list:
-      - recipe[db2::make_tcr]
+      - recipe[tcr_db2::make_tcr]
     verifier:
       inspec_tests:
         - test/smoke/default

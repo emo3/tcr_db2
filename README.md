@@ -7,7 +7,6 @@ Requirements
 ------------
 Platforms:<br>
 RHEL/Centos 7.4+<br>
-Ubuntu 16.04<br>
 
 Attributes
 ----------
