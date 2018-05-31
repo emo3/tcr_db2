@@ -1,4 +1,22 @@
-# create and run sql to create schema for TCR
+#
+# Cookbook Name:: tcr_db2
+# Recipe:: create_tcr
+#
+# Copyright 2018, OvertonClan
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 binary_dir = Chef::Config[:file_cache_path]
 
 template "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
@@ -12,15 +30,13 @@ template "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
   mode '0644'
 end
 
-execute 'create-tcr' do
+execute 'tcr_schema' do
   command "#{node['db2']['db2inst1-home']}/sqllib/bin/db2 \
   -tmf #{binary_dir}/#{node['tcr_db2']['tcr_sql']}"
-  cwd binary_dir
-  owner node['db2']['db2inst1-user']
-  group node['db2']['db2inst1-group']
+  cwd "#{node['db2']['db2inst1-home']}/sqllib/bin"
   action :run
 end
 
-file "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}.sql" do
+file "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
   action :nothing
 end
