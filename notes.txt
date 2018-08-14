@@ -1,0 +1,8 @@
+# Following command list all applications
+db2 list applications
+# If you change any configuration parameter, you will probably need to restart, so, stop database server with:
+db2stop
+# Now, for starting IBM DB2 again, run following command:
+db2start
+# List databases:
+db2 list database directory show detail | grep -B6 -i indirect | grep "Database name"
