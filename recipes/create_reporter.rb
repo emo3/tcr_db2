@@ -45,9 +45,9 @@ execute 'rpt_schema' do
   cwd "#{node['db2']['db2inst1-home']}/sqllib/bin"
   user node['db2']['db2inst1-user']
   not_if "db2 list database directory | grep #{node['db2']['instance_name']}", user: node['db2']['db2inst1-user']
-  action :run
+  action :nothing
 end
 
 file "#{binary_dir}/#{node['tcr_db2']['rpt_sql']}" do
-  action :delete
+  action :nothing
 end
