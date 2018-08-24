@@ -34,7 +34,7 @@ execute 'tcr_schema' do
   command "#{node['db2']['db2inst1-home']}/sqllib/bin/db2 \
   -tmf #{binary_dir}/#{node['tcr_db2']['tcr_sql']}"
   cwd "#{node['db2']['db2inst1-home']}/sqllib/bin"
-  action :run
+  action :nothing
 end
 
 file "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
