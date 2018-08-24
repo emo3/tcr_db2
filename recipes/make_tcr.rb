@@ -38,4 +38,8 @@ node.default['db2']['db2_epassword']   = '$1$xaVDw1NS$NmyxP1YTnqenTM8LmEO2f.'
 include_recipe 'db2::default'
 include_recipe 'db2::installfp'
 include_recipe 'db2::instance'
-include_recipe '::create_tcr'
+## create TCRDB database
+include_recipe '::create_tcrdb'
+## create REPORTER instance
+node.default['db2']['instance_name'] = 'REPORTER'
+# include_recipe '::create_reporter'

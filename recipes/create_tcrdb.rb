@@ -19,24 +19,34 @@
 
 binary_dir = Chef::Config[:file_cache_path]
 
+execute 'start_db2' do
+  command "#{node['db2']['db2inst1-home']}/sqllib/adm/db2start"
+  cwd "#{node['db2']['db2inst1-home']}/sqllib/adm"
+  user node['db2']['db2inst1-user']
+  not_if 'ps -ef | grep db2vend'
+end
+
 template "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
   source "#{node['tcr_db2']['tcr_sql']}.erb"
   variables(
     tcr_db: node['db2']['instance_name'],
-    instance_acct: node['db2']['db2inst1-user']
+    instance_acct: node['db2']['db2user1-user']
   )
   owner node['db2']['db2inst1-user']
   group node['db2']['db2inst1-group']
   mode '0644'
+  not_if "db2 list database directory|grep #{node['db2']['db2user1-user']}", user: node['db2']['db2inst1-user']
 end
 
 execute 'tcr_schema' do
   command "#{node['db2']['db2inst1-home']}/sqllib/bin/db2 \
   -tmf #{binary_dir}/#{node['tcr_db2']['tcr_sql']}"
   cwd "#{node['db2']['db2inst1-home']}/sqllib/bin"
-  action :nothing
+  user node['db2']['db2inst1-user']
+  not_if "db2 list database directory|grep #{node['db2']['db2user1-user']}", user: node['db2']['db2inst1-user']
+  action :run
 end
 
 file "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
-  action :nothing
+  action :delete
 end

@@ -1,0 +1,739 @@
+-------------------------------------------------------------------------------
+--
+-- (C) Copyright IBM Corp. 2003, 2012 ALL Rights Reserved
+--
+-------------------------------------------------------------------------------
+-- This script will create all the schema objects needed
+-- to store data processed by the Gateway. This includes
+-- tables, indexes and constraints.
+
+-- To run this script, you must do the following:
+--   (1) Put this script in directory of your choice.
+
+--   (2) At the DB2 command window prompt, run this script.
+
+--       EXAMPLE:    db2 -td@ -vf c:\temp\db2.reporter.sql
+--------------------------------------------------------------------------------
+-- CREATE DATABASE reporter @
+CONNECT TO reporter USER <%= node['db2']['instance_name'] %> USING <%= node.default['db2']['db2_password'] %> @
+
+
+--\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+-- THIS SECTION OF THE SCRIPT  CREATES ALL THE TABLES DIRECTLY
+-- ACCESSED BY THE REPORTER GATEWAY
+
+-- TABLES:
+--        REPORTER_DETAILS
+--        REPORTER_JOURNAL
+--        REPORTER_STATUS
+--//////////////////////////////////////////////////////////////////////
+
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REPORTER_STATUS table is the main one of the three tables directly
+-- written to by the Gateway.
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATE TABLE REPORTER_STATUS (
+       IDENTIFIER       VARCHAR (255),
+       SERIAL           INTEGER,
+       NODE             VARCHAR (64),
+       NODEALIAS        VARCHAR (64),
+       MANAGER          VARCHAR (64),
+       AGENT            VARCHAR (64),
+       ALERTGROUP       VARCHAR (255),
+       ALERTKEY         VARCHAR (255),
+       SEVERITY         INTEGER,
+       SUMMARY          VARCHAR (255),
+       STATECHANGE      TIMESTAMP,
+       FIRSTOCCURRENCE  TIMESTAMP,
+       LASTOCCURRENCE   TIMESTAMP,
+       LASTMODIFIED     TIMESTAMP,
+       POLL             INTEGER,
+       TYPE             INTEGER,
+       TALLY            INTEGER,
+       CLASS            INTEGER,
+       GRADE            INTEGER,
+       LOCATION         VARCHAR (64),
+       OWNERUID         INTEGER,
+       OWNERGID         INTEGER,
+       ACKNOWLEDGED     INTEGER,
+       FLASH            INTEGER,
+       EVENTID          VARCHAR (255),
+       EXPIRETIME       INTEGER,
+       PROCESSREQ       INTEGER,
+       SUPPRESSESCL     INTEGER,
+       CUSTOMER         VARCHAR (64),
+       SERVICE          VARCHAR (64),
+       PHYSICALSLOT     INTEGER,
+       PHYSICALPORT     INTEGER,
+       PHYSICALCARD     VARCHAR (64),
+       TASKLIST         INTEGER,
+       NMOSSERIAL       VARCHAR (64),
+       NMOSOBJINST      INTEGER,
+       NMOSCAUSETYPE    INTEGER,
+       LOCALNODEALIAS   VARCHAR (64),
+       LOCALPRIOBJ      VARCHAR (255),
+       LOCALSECOBJ      VARCHAR (255),
+       LOCALROOTOBJ     VARCHAR (255),
+       REMOTENODEALIAS  VARCHAR (64),
+       REMOTEPRIOBJ     VARCHAR (255),
+       REMOTESECOBJ     VARCHAR (255),
+       REMOTEROOTOBJ    VARCHAR (255),
+       X733EVENTTYPE    INTEGER,
+       X733PROBABLECAUSE INTEGER,
+       X733SPECIFICPROB VARCHAR (64),
+       X733CORRNOTIF    VARCHAR (255),
+       SERVERNAME       VARCHAR (64)    NOT NULL,
+       SERVERSERIAL     INTEGER         NOT NULL,
+       ORIGINALSEVERITY INTEGER,
+       DELETEDAT        TIMESTAMP,
+       PRIMARY KEY (SERVERNAME, SERVERSERIAL) )
+DATA CAPTURE NONE@
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REPORTER_JOURNAL table is another of the three tables directly
+-- written to by the Gateway.
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATE TABLE REPORTER_JOURNAL (
+        SERIAL INTEGER NOT NULL,
+        USERID INTEGER NOT NULL,
+        CHRONO TIMESTAMP NOT NULL,
+        TEXT1 VARCHAR (255),
+        TEXT2 VARCHAR (255),
+        TEXT3 VARCHAR (255),
+        TEXT4 VARCHAR (255),
+        TEXT5 VARCHAR (255),
+        TEXT6 VARCHAR (255),
+        TEXT7 VARCHAR (255),
+        TEXT8 VARCHAR (255),
+        TEXT9 VARCHAR (255),
+        TEXT10 VARCHAR (255),
+        TEXT11 VARCHAR (255),
+        TEXT12 VARCHAR (255),
+        TEXT13 VARCHAR (255),
+        TEXT14 VARCHAR (255),
+        TEXT15 VARCHAR (255),
+        TEXT16 VARCHAR (255),
+        SERVERNAME VARCHAR (64) NOT NULL,
+        SERVERSERIAL INTEGER NOT NULL
+	-- Uncomment the line below to enable foreign keys
+	-- This helps pruning by only requiring the alert to be
+	-- deleted from the status table
+        -- , CONSTRAINT eventref FOREIGN KEY (SERVERNAME, SERVERSERIAL) REFERENCES REPORTER_STATUS(SERVERNAME, SERVERSERIAL) ON DELETE CASCADE )
+DATA CAPTURE NONE@
+
+CREATE INDEX RJ_INDEX1
+        ON REPORTER_JOURNAL (
+                SERVERSERIAL, CHRONO, USERID )
+        PCTFREE 10@
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REPORTER_DETAIL table is one of the three tables directly written
+-- to by the Gateway.
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATE TABLE REPORTER_DETAILS (
+        IDENTIFIER VARCHAR (255),
+        ATTRVAL INTEGER,
+        SEQUENCE INTEGER NOT NULL,
+        NAME VARCHAR (255),
+        DETAIL VARCHAR (255),
+        SERVERNAME VARCHAR (64)  NOT NULL,
+        SERVERSERIAL INTEGER  NOT NULL
+	-- Uncomment the line below to enable foreign keys
+	-- This helps pruning by only requiring the alert to be
+	-- deleted from the status table
+        -- , CONSTRAINT eventref FOREIGN KEY (SERVERNAME, SERVERSERIAL) REFERENCES REPORTER_STATUS(SERVERNAME, SERVERSERIAL) ON DELETE CASCADE )
+DATA CAPTURE NONE@
+
+CREATE INDEX RD_INDEX
+        ON REPORTER_DETAILS (
+                SERVERSERIAL, SEQUENCE )
+        PCTFREE 10@
+
+--\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+--  THIS SECTION LISTS THE AUDIT TABLES WHICH ACT AS SECOND
+--  LEVEL TABLES FOR THE GATEWAY.   THESE ARE NOT DIRECTLY ACCESSED BY
+--  THE GATEWAY.   THEY ARE POPULATED OFF THE REPORTER_STATUS TABLE
+
+--  TABLES:
+--        REP_AUDIT_OWNERUID
+--        REP_AUDIT_OWNERGID
+--        REP_AUDIT_SEVERITY
+--        REP_AUDIT_ACK
+--/////////////////////////////////////////////////////////////////////
+
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REP_AUDIT_OWNERUID table is used to hold the User details
+-- if the User id of a record is changed.
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATE TABLE REP_AUDIT_OWNERUID (
+        SERIAL          INTEGER   NOT NULL,
+        STATECHANGE     TIMESTAMP NOT NULL,
+        OLDOWNERUID     INTEGER   NOT NULL,
+        OWNERUID        INTEGER   NOT NULL,
+        SERVERNAME      VARCHAR (64) NOT NULL,
+        SERVERSERIAL    INTEGER NOT NULL,
+        CONSTRAINT eventref FOREIGN KEY (SERVERNAME, SERVERSERIAL) REFERENCES REPORTER_STATUS(SERVERNAME, SERVERSERIAL) ON DELETE CASCADE )
+DATA CAPTURE NONE @
+
+-- Create the Index for REP_AUDIT_OWNERUID
+
+CREATE INDEX REP_AUDIT_OWNERUID_IDX
+       ON REP_AUDIT_OWNERUID (
+               SERVERSERIAL,
+               SERVERNAME )
+       PCTFREE 10 @
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REP_AUDIT_OWNERGID table is used to hold the User Group details
+-- if the group id of a record is changed.
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATE TABLE REP_AUDIT_OWNERGID (
+        SERIAL          INTEGER   NOT NULL,
+        STATECHANGE     TIMESTAMP NOT NULL,
+        OLDOWNERGID     INTEGER   NOT NULL,
+        OWNERGID        INTEGER   NOT NULL,
+        SERVERNAME      VARCHAR (64) NOT NULL,
+        SERVERSERIAL    INTEGER NOT NULL,
+        CONSTRAINT eventref FOREIGN KEY (SERVERNAME, SERVERSERIAL) REFERENCES REPORTER_STATUS(SERVERNAME, SERVERSERIAL) ON DELETE CASCADE )
+DATA CAPTURE NONE @
+
+-- Create the Index for REP_AUDIT_OWNERGID
+
+CREATE INDEX REP_AUDIT_OWNERGID_IDX
+       ON REP_AUDIT_OWNERGID (
+               SERVERSERIAL,
+               SERVERNAME )
+       PCTFREE 10 @
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REP_AUDIT_SEVERITY table is used to record the changes in severity
+-- of a record in the Reporter_status table.
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- Create the Table REP_AUDIT_SEVERITY
+CREATE TABLE REP_AUDIT_SEVERITY (
+        SERIAL          INTEGER NOT NULL,
+        STARTDATE       TIMESTAMP NOT NULL,
+        ENDDATE         TIMESTAMP,
+        SEVERITY        INTEGER,
+        STATE           INTEGER,
+        SERVERNAME      VARCHAR (64) NOT NULL,
+        SERVERSERIAL    INTEGER NOT NULL,
+        CONSTRAINT eventref FOREIGN KEY (SERVERNAME, SERVERSERIAL) REFERENCES REPORTER_STATUS(SERVERNAME, SERVERSERIAL) ON DELETE CASCADE )
+DATA CAPTURE NONE @
+
+
+-- Create the Index for REP_AUDIT_SEVERITY
+
+CREATE INDEX REP_AUDIT_SEVERITY_IDX
+       ON REP_AUDIT_SEVERITY (
+               SERVERSERIAL,
+               STATE )
+       PCTFREE 10 @
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REP_AUDIT_ACK table is used to record each acknowledgement
+-- made to a record in the reporter_status table.
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+-- Create table used for storing audit trail of Acknowledgement changes
+CREATE TABLE REP_AUDIT_ACK (
+        SERIAL          INTEGER NOT NULL,
+        STARTDATE       TIMESTAMP NOT NULL,
+        ENDDATE         TIMESTAMP,
+        OWNERUID        INTEGER,
+        STATE           INTEGER,
+        SERVERNAME      VARCHAR (64) NOT NULL,
+        SERVERSERIAL    INTEGER NOT NULL,
+        CONSTRAINT eventref FOREIGN KEY (SERVERNAME, SERVERSERIAL) REFERENCES REPORTER_STATUS(SERVERNAME, SERVERSERIAL) ON DELETE CASCADE )
+DATA CAPTURE NONE @
+
+-- Create the Index for REP_AUDIT_ACK
+
+CREATE INDEX REP_AUDIT_ACK_IDX
+       ON REP_AUDIT_ACK (
+               SERVERSERIAL,
+               STATE )
+       PCTFREE 10 @
+
+-- Create Supplementary Tables to Store Object Server Information
+-- Create table to store UserNames for Netcool Users
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REPORTER_NAMES table is used to hold the user details
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATE TABLE REPORTER_NAMES (
+        NAME            CHAR (64) NOT NULL,
+        OWNERUID        INTEGER NOT NULL,
+        OWNERGID        INTEGER NOT NULL,
+        PASSWORD        CHAR (64),
+        TYPE            INTEGER NOT NULL,
+        PRIMARY KEY (NAME) )
+DATA CAPTURE NONE @
+
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REPORTER_GROUPS table is used to hold the user group details
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- Create table to store Groups for Netcool Groups
+CREATE TABLE REPORTER_GROUPS (
+        NAME            CHAR (64) NOT NULL,
+        OWNERGID        INTEGER NOT NULL,
+        PRIMARY KEY (NAME) )
+DATA CAPTURE NONE @
+
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REPORTER_MEMBERS table is used to hold the STATIC group members details
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+-- Create table to store Groups for Netcool Members Lists
+CREATE TABLE REPORTER_MEMBERS (
+        OWNERKEY        CHAR (18) NOT NULL,
+        OWNERUID        INTEGER NOT NULL,
+        OWNERGID        INTEGER NOT NULL,
+        PRIMARY KEY (OwnerKey) )
+DATA CAPTURE NONE @
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REPORTER_CLASSES  is used to hold the STATIC group class details
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- Create table to store Groups for Netcool Classes
+CREATE TABLE REPORTER_CLASSES (
+        CLASS   INTEGER NOT NULL,
+        NAME    VARCHAR (64) NOT NULL,
+        ICON    VARCHAR (255),
+        MENU    VARCHAR (64),
+        PRIMARY KEY (CLASS) )
+DATA CAPTURE NONE @
+
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REPORTER_CONVERSIONS  is used to hold the STATIC conversion records
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- Create table to store Groups for Netcool Conversions
+CREATE TABLE REPORTER_CONVERSIONS (
+        CONVERSION_KEY  VARCHAR (255) NOT NULL,
+        COLUMN_NAME     VARCHAR (255) NOT NULL,
+        VALUE           INTEGER NOT NULL,
+        CONVERSION      VARCHAR (255) NOT NULL,
+        PRIMARY KEY (CONVERSION_KEY) )
+DATA CAPTURE NONE @
+
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REP_SEVERITY_TYPES is used to hold the STATIC severity types data
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+-- Create table to store Groups for Netcool Severity Text Values
+DROP TABLE REP_SEVERITY_TYPES @
+
+CREATE TABLE REP_SEVERITY_TYPES (
+        SEVERITY        INTEGER NOT NULL,
+        NAME            CHAR (64) NOT NULL,
+        PRIMARY KEY (SEVERITY) )
+DATA CAPTURE NONE @
+
+
+INSERT INTO REP_SEVERITY_TYPES VALUES ( 0, 'Clear' ) @
+INSERT INTO REP_SEVERITY_TYPES VALUES ( 1, 'Indeterminate' ) @
+INSERT INTO REP_SEVERITY_TYPES VALUES ( 2, 'Warning' ) @
+INSERT INTO REP_SEVERITY_TYPES VALUES ( 3, 'Minor' ) @
+INSERT INTO REP_SEVERITY_TYPES VALUES ( 4, 'Major' ) @
+INSERT INTO REP_SEVERITY_TYPES VALUES ( 5, 'Critical' ) @
+
+COMMIT WORK @
+
+--\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+-- The following table is specific to reporter and is
+-- referenced in the canned reports.
+--
+--//////////////////////////////////////////////////////////////////
+DROP TABLE REP_TIME_PERIODS @
+
+CREATE TABLE REP_TIME_PERIODS (
+        ELAPSED_PERIOD  INTEGER NOT NULL,
+        PERIOD_NAME     CHAR (64) NOT NULL )
+DATA CAPTURE NONE @
+
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(1,'1 Day') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(2,'2 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(3,'3 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(4,'4 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(5,'5 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(6,'6 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(7,'7 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(14,'14 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(21,'21 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(28,'28 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(30,'30 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(60,'60 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(90,'90 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(120,'120 Days') @
+INSERT INTO REP_TIME_PERIODS(ELAPSED_PERIOD, PERIOD_NAME) VALUES(365,'365 Days') @
+
+COMMIT WORK @
+
+--\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+-- This section lists the triggers and the procedures that are the
+-- back-bone the gateway audit
+
+-- There is only three  triggers acting on the reporter_status table.
+-- They are called REP_AUDIT_INSERT,
+--                 REP_AUDIT_UPDATE,
+--                 REP_AUDIT_ACK.
+
+-- There are five procedures that are performed from the triggers.
+-- The procedures are:
+--
+-- Acknowledged Procedure:
+--      The acknowledged procedure is used to record each acknowledgement
+--      made to a record in the reporter_status table.
+--
+-- Deletedat Procedure:
+--      The deletedat procedure is used to record the last status (after a
+--       delete) of a record in the reporter_status table.
+--
+-- Ownergid Procedure:
+--      The ownergid procedure is used to record the User Group id details
+--      if the group id of a record is changed.
+--
+-- Owneruid Procedure:
+--      The owneruid procedure is used to record the User id details
+--      if the User id of a record is changed.
+--
+-- Severity Procedure:
+--      The severity procedure table is used to record the changes in
+--      severity of a record in the reporter_status table.
+--///////////////////////////////////////////////////////////////////
+
+
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- The REP_AUDIT_INSERT and REP_AUDIT_UPDATE triggers are the only ones
+-- that fires of the REPORTER_STATUS table.  Thay are used to record all
+-- types of changes a record may undergo whether manually performed or
+-- carried out by automation in the Object Server.
+--+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+DROP TRIGGER REP_AUDIT_INSERT @
+CREATE TRIGGER REP_AUDIT_INSERT
+AFTER INSERT ON REPORTER_STATUS
+REFERENCING NEW AS N
+FOR EACH ROW
+MODE DB2SQL
+WHEN ( N.lastmodified IS NOT NULL )
+BEGIN ATOMIC
+        -- start acknowledged procedure
+        UPDATE rep_audit_ack SET
+                enddate = N.lastmodified,
+                state = 1
+        WHERE
+                serverserial = N.serverserial AND
+                servername = N.servername AND
+                state = 0 ;
+        INSERT INTO rep_audit_ack VALUES (
+                N.serial,
+                N.lastmodified,
+                NULL,
+                N.owneruid,
+                0,
+                N.servername,
+                N.serverserial ) ;
+        -- start severity procedure
+        UPDATE rep_audit_severity SET
+                enddate = N.lastmodified,
+                state = 1
+        WHERE
+                serverserial = N.serverserial AND
+                servername = N.servername AND
+                state = 0;
+        INSERT INTO rep_audit_severity VALUES (
+                N.serial,
+                N.lastmodified,
+                NULL,
+                N.severity,
+                0,
+                N.servername,
+                N.serverserial ) ;
+END @
+
+DROP TRIGGER REP_AUDIT_UPDATE_SEVERITY @
+CREATE TRIGGER REP_AUDIT_UPDATE_SEVERITY
+AFTER UPDATE ON REPORTER_STATUS
+REFERENCING NEW AS N OLD AS O
+FOR EACH ROW
+MODE DB2SQL
+WHEN ( O.severity <> N.severity AND N.lastmodified IS NOT NULL )
+BEGIN ATOMIC
+                -- start severity procedure
+                UPDATE rep_audit_severity SET
+                        enddate = N.lastmodified,
+                        state = 1
+                WHERE
+                        serverserial = N.serverserial AND
+                        servername = N.servername AND
+                        state = 0;
+
+                INSERT INTO rep_audit_severity VALUES (
+                        N.serial,
+                        N.lastmodified,
+                        NULL,
+                        N.severity,
+                        0,
+                        N.servername,
+                        N.serverserial ) ;
+END @
+
+DROP TRIGGER REP_AUDIT_UPDATE_DELETEDAT @
+CREATE TRIGGER REP_AUDIT_UPDATE_DELETEDAT
+AFTER UPDATE ON REPORTER_STATUS
+REFERENCING NEW AS N OLD AS O
+FOR EACH ROW
+MODE DB2SQL
+WHEN ( O.deletedat IS NULL AND N.deletedat IS NOT NULL AND N.lastmodified IS NOT NULL )
+BEGIN ATOMIC
+                -- start deletedat procedure
+                UPDATE rep_audit_severity SET
+                        enddate = N.lastmodified,
+                        state = 1
+                WHERE
+                        serverserial = N.serverserial AND
+                        servername = N.servername AND
+                        state = 0;
+                UPDATE rep_audit_ack SET
+                        enddate = N.lastmodified
+                WHERE
+                        servername = N.servername  AND
+                        serverserial = N.serverserial  AND
+                        state = 0;
+END@
+
+DROP TRIGGER REP_AUDIT_UPDATE_OWNERUID @
+CREATE TRIGGER REP_AUDIT_UPDATE_OWNERUID
+AFTER UPDATE ON REPORTER_STATUS
+REFERENCING NEW AS N OLD AS O
+FOR EACH ROW
+MODE DB2SQL
+WHEN ( O.owneruid <> N.owneruid AND N.lastmodified IS NOT NULL )
+BEGIN ATOMIC
+                -- start owneruid procedure
+                INSERT INTO rep_audit_owneruid VALUES (
+                        N.serial,
+                        N.lastmodified,
+                        O.owneruid,
+                        N.owneruid,
+                        N.servername,
+                        N.serverserial );
+END @
+
+DROP TRIGGER REP_AUDIT_UPDATE_OWNERGID @
+CREATE TRIGGER REP_AUDIT_UPDATE_OWNERGID
+AFTER UPDATE ON REPORTER_STATUS
+REFERENCING NEW AS N OLD AS O
+FOR EACH ROW
+MODE DB2SQL
+WHEN ( O.ownergid <> N.ownergid AND N.lastmodified IS NOT NULL )
+BEGIN ATOMIC
+                -- start ownergid procedure
+                INSERT INTO rep_audit_ownergid VALUES (
+                        N.serial,
+                        N.lastmodified,
+                        O.ownergid,
+                        N.ownergid,
+                        N.servername,
+                        N.serverserial );
+END @
+
+DROP TRIGGER REP_AUDIT_UPDATE_ACK @
+CREATE TRIGGER REP_AUDIT_UPDATE_ACK
+AFTER UPDATE ON REPORTER_STATUS
+REFERENCING NEW AS N OLD AS O
+FOR EACH ROW
+MODE DB2SQL
+WHEN ( O.acknowledged <> N.acknowledged AND N.lastmodified IS NOT NULL )
+BEGIN ATOMIC
+                -- start acknowledged procedure
+                UPDATE rep_audit_ack SET
+                        enddate = N.lastmodified,
+                        state = 1
+                WHERE
+                        serverserial = N.serverserial AND
+                        servername = N.servername AND
+                        state = 0;
+
+                INSERT INTO rep_audit_ack VALUES (
+                        N.serial,
+                        N.lastmodified,
+                        NULL,
+                        N.owneruid,
+                        0,
+                        N.servername,
+                        N.serverserial );
+END @
+
+DROP TRIGGER REP_AUDIT_ACK @
+
+CREATE TRIGGER REP_AUDIT_ACK
+AFTER INSERT ON REPORTER_JOURNAL
+REFERENCING NEW AS N
+FOR EACH ROW
+MODE DB2SQL
+WHEN ( N.text1 LIKE 'Alert acknowledged%' )
+BEGIN ATOMIC
+                UPDATE rep_audit_ack
+                SET
+                        enddate = N.chrono,
+                        state = 1,
+                        owneruid = N.userid
+                WHERE
+                        serverserial = N.serverserial AND
+                        servername = N.servername AND
+                        state = 0;
+END @
+
+
+-- ////////////////////////////////////////////////////////////////////
+-- The final three views are specific to reporter and are referenced
+-- by the canned reports.
+-- \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+DROP VIEW REP_REFERENCE_DATE @
+
+CREATE VIEW REP_REFERENCE_DATE (REF_DATE) AS
+SELECT CURRENT TIMESTAMP
+FROM SYSIBM.SYSDUMMY1 @
+
+DROP VIEW STATUS_VW @
+
+CREATE VIEW STATUS_VW (
+        IDENTIFIER,
+        SERVERSERIAL,
+        SERVERNAME,
+        NODE,
+        NODEALIAS,
+        MANAGER,
+        AGENT,
+        ALERTGROUP,
+        ALERTKEY,
+        SUMMARY,
+        LOCATION,
+        CLASS,
+        POLL,
+        TYPE,
+        TALLY,
+        SEVERITY,
+        SEVERITY_NAMES,
+        OWNERUID,
+        OWNERGID,
+        ACKNOWLEDGED,
+        LASTMODIFIED,
+        LASTMODIFIED_DT,
+        FIRSTOCCURRENCE,
+        FIRSTOCCURRENCE_DT,
+        LASTOCCURRENCE,
+        LASTOCCURRENCE_DT,
+        LASTOCCURRENCE_YR,
+        LASTOCCURRENCE_MT,
+        LASTOCCURRENCE_DY,
+        DELETEDAT,
+        SERIAL,
+        ORIGINALSEVERITY
+) AS SELECT
+        IDENTIFIER,
+        SERVERSERIAL,
+        SERVERNAME,
+        NODE,
+        NODEALIAS,
+        MANAGER,
+        AGENT,
+        ALERTGROUP,
+        ALERTKEY,
+        SUMMARY,
+        LOCATION,
+        CLASS,
+        POLL,
+        TYPE,
+        TALLY,
+        REPORTER_STATUS.SEVERITY,
+        (CHAR(REPORTER_STATUS.SEVERITY) || ' ' || REP_SEVERITY_TYPES.NAME),
+        OWNERUID,
+        OWNERGID,
+        ACKNOWLEDGED,
+        LASTMODIFIED,
+        (REPLACE(CHAR(TIME(LASTMODIFIED)),'.',':') || ' ' || SUBSTR(CHAR(SYSIBM.DIGITS(DAY(LASTMODIFIED))),9,2) || '/' || SUBSTR(CHAR(SYSIBM.DIGITS(MONTH(LASTMODIFIED))),9,2) || '/' || RTRIM(CHAR(YEAR(LASTMODIFIED)))),
+        FIRSTOCCURRENCE,
+        (REPLACE(CHAR(TIME(FIRSTOCCURRENCE)),'.',':') || ' ' || SUBSTR(CHAR(SYSIBM.DIGITS(DAY(FIRSTOCCURRENCE))),9,2) || '/' || SUBSTR(CHAR(SYSIBM.DIGITS(MONTH(FIRSTOCCURRENCE))),9,2) || '/' || RTRIM(CHAR(YEAR(FIRSTOCCURRENCE)))),
+        LASTOCCURRENCE,
+        (REPLACE(CHAR(TIME(LASTOCCURRENCE)),'.',':') || ' ' || SUBSTR(CHAR(SYSIBM.DIGITS(DAY(LASTOCCURRENCE))),9,2) || '/' || SUBSTR(CHAR(SYSIBM.DIGITS(MONTH(LASTOCCURRENCE))),9,2) || '/' || RTRIM(CHAR(YEAR(LASTOCCURRENCE)))),
+        RTRIM(CHAR(YEAR(LASTOCCURRENCE))),
+        SUBSTR(CHAR(SYSIBM.DIGITS(MONTH(LASTOCCURRENCE))),9,2),
+        SUBSTR(CHAR(SYSIBM.DIGITS(DAY(LASTOCCURRENCE))),9,2),
+        DELETEDAT,
+        SERIAL,
+        ORIGINALSEVERITY
+FROM
+        REPORTER_STATUS, REP_SEVERITY_TYPES
+WHERE
+        REPORTER_STATUS.SEVERITY = REP_SEVERITY_TYPES.SEVERITY @
+
+DROP VIEW REP_AUDIT @
+
+CREATE VIEW REP_AUDIT (
+        SERVERSERIAL,
+        SERVERNAME,
+        STARTDATE,
+        VALUE_ACK,
+        VALUE_SEVERITY,
+        VALUE_OWNER,
+        VALUE_GROUP)
+AS SELECT
+        SERVERSERIAL,
+        SERVERNAME,
+        STARTDATE,
+        STATE,
+        CAST(NULL AS INTEGER),
+        CAST(NULL AS INTEGER),
+        CAST(NULL AS INTEGER)
+FROM REP_AUDIT_ACK
+UNION SELECT
+        SERVERSERIAL,
+        SERVERNAME,
+        STARTDATE,
+        CAST(NULL AS INTEGER),
+        SEVERITY,
+        CAST(NULL AS INTEGER),
+        CAST(NULL AS INTEGER)
+FROM REP_AUDIT_SEVERITY
+UNION SELECT
+        SERVERSERIAL,
+        SERVERNAME,
+        STATECHANGE,
+        CAST(NULL AS INTEGER),
+        CAST(NULL AS INTEGER),
+        OWNERUID,
+        CAST(NULL AS INTEGER)
+FROM REP_AUDIT_OWNERUID
+UNION SELECT
+        SERVERSERIAL,
+        SERVERNAME,
+        STATECHANGE,
+        CAST(NULL AS INTEGER),
+        CAST(NULL AS INTEGER),
+        CAST(NULL AS INTEGER),
+        OWNERGID
+FROM REP_AUDIT_OWNERGID @
+
+COMMIT WORK @
