@@ -42,4 +42,4 @@ include_recipe 'db2::instance'
 include_recipe '::create_tcrdb'
 ## create REPORTER instance
 node.default['db2']['instance_name'] = 'REPORTER'
-# include_recipe '::create_reporter'
+include_recipe '::create_reporter'

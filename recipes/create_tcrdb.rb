@@ -19,11 +19,14 @@
 
 binary_dir = Chef::Config[:file_cache_path]
 
+log "db2 list database directory|grep #{node['db2']['instance_name']}"
+log node['db2']['db2inst1-user']
+
 execute 'start_db2' do
   command "#{node['db2']['db2inst1-home']}/sqllib/adm/db2start"
   cwd "#{node['db2']['db2inst1-home']}/sqllib/adm"
-  user node['db2']['db2inst1-user']
-  not_if 'ps -ef | grep db2vend'
+  user node['db2']['instance_name']
+  not_if 'ps -ef | pgrep db2vend', user: node['db2']['db2inst1-user']
 end
 
 template "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
@@ -32,10 +35,8 @@ template "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
     tcr_db: node['db2']['instance_name'],
     instance_acct: node['db2']['db2user1-user']
   )
-  owner node['db2']['db2inst1-user']
-  group node['db2']['db2inst1-group']
   mode '0644'
-  not_if "db2 list database directory|grep #{node['db2']['db2user1-user']}", user: node['db2']['db2inst1-user']
+  not_if "db2 list database directory | grep #{node['db2']['instance_name']}", user: node['db2']['db2inst1-user']
 end
 
 execute 'tcr_schema' do
@@ -43,7 +44,7 @@ execute 'tcr_schema' do
   -tmf #{binary_dir}/#{node['tcr_db2']['tcr_sql']}"
   cwd "#{node['db2']['db2inst1-home']}/sqllib/bin"
   user node['db2']['db2inst1-user']
-  not_if "db2 list database directory|grep #{node['db2']['db2user1-user']}", user: node['db2']['db2inst1-user']
+  not_if "db2 list database directory | grep #{node['db2']['instance_name']}", user: node['db2']['db2inst1-user']
   action :run
 end
 
