@@ -19,7 +19,7 @@
 
 binary_dir = Chef::Config[:file_cache_path]
 
-execute 'start_db2' do
+execute 'start_db2_rpt' do
   command "#{node['db2']['db2inst1-home']}/sqllib/adm/db2start"
   cwd "#{node['db2']['db2inst1-home']}/sqllib/adm"
   user node['db2']['db2inst1-user']
