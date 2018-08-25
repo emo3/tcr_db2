@@ -15,10 +15,13 @@ describe 'tcr_db2::make_tcr' do
       runner.converge(described_recipe)
     end
     before do
-      stub_command('ps -ef | grep db2vend').and_return(true)
+      stub_command('ps -ef | pgrep db2vend').and_return(true)
     end
     before do
-      stub_command('db2 list database directory|grep tcr001').and_return(true)
+      stub_command('db2 list database directory | grep TCRDB').and_return(true)
+    end
+    before do
+      stub_command('db2 list database directory | grep REPORTER').and_return(true)
     end
 
     it 'converges successfully' do
