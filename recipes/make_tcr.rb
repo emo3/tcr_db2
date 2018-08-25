@@ -37,6 +37,8 @@ node.default['db2']['db2_password']    = 'P@ssw0rd'
 node.default['db2']['db2_epassword']   = '$1$xaVDw1NS$NmyxP1YTnqenTM8LmEO2f.'
 include_recipe 'db2::default'
 include_recipe 'db2::installfp'
+log '***'
+log node['db2']['db2_epassword']
 include_recipe 'db2::instance'
 ## create TCRDB database
 include_recipe '::create_tcrdb'
