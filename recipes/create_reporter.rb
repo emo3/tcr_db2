@@ -1,6 +1,6 @@
 #
 # Cookbook Name:: tcr_db2
-# Recipe:: create_tcr
+# Recipe:: create_reporter
 #
 # Copyright 2018, OvertonClan
 #
