@@ -36,7 +36,7 @@ execute 'pre_rpt' do
   not_if { File.exist?("#{node['db2']['db2user1-home']}/rpt.orig") }
 end
 
-# make backup copy of profile
+# make backup copy of rpt
 copy_file 'copy rpt' do
   old_file "#{node['db2']['db2user1-home']}/rpt"
   file_ext '.bak'
@@ -67,4 +67,13 @@ end
 
 file "#{binary_dir}/#{node['tcr_db2']['rpt_sql']}" do
   action :delete
+end
+
+# rename rpt
+copy_file 'rename rpt' do
+  old_file "#{node['db2']['db2user1-home']}/rpt"
+  file_ext '.bak'
+  file_ext1 '.orig'
+  not_if { File.exist?("#{node['db2']['db2user1-home']}/rpt.orig") }
+  action :move
 end

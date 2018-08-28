@@ -36,7 +36,7 @@ execute 'pre_tcr' do
   not_if { File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
 end
 
-# make backup copy of profile
+# make backup copy of tcr
 copy_file 'copy tcr' do
   old_file "#{node['db2']['db2user1-home']}/tcr"
   file_ext '.bak'
@@ -69,7 +69,7 @@ file "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
   action :delete
 end
 
-# rename profile
+# rename tcr
 copy_file 'rename tcr' do
   old_file "#{node['db2']['db2user1-home']}/tcr"
   file_ext '.bak'
