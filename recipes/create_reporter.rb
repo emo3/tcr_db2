@@ -2,7 +2,7 @@
 # Cookbook Name:: tcr_db2
 # Recipe:: create_reporter
 #
-# Copyright 2018, OvertonClan
+# Copyright 2018, Ed Overton
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
