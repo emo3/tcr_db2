@@ -28,5 +28,5 @@ suites:
       - recipe[tcr_db2::make_tcr]
     verifier:
       inspec_tests:
-        - test/smoke/default
+        - test/integration/default
     attributes:

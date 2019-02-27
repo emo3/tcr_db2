@@ -2,7 +2,7 @@
 # Cookbook Name:: tcr_db2
 # Recipe:: create_tcrdb
 #
-# Copyright 2018, Ed Overton
+# Copyright 2019, Ed Overton
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+set_hostname 'set chefsrv server' do
+  action :run
+end
 
 binary_dir = Chef::Config[:file_cache_path]
 
