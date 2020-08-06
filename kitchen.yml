@@ -1,14 +1,12 @@
 ---
 driver:
   name: vagrant
-  vm_hostname: <%= ENV['DS'] %>
   customize:
-    memory: <%= ENV['DSR'] %>
-    cpus: <%= ENV['DSC'] %>
-    name: <%= ENV['DS'] %>
+    memory: 4096
+    cpus: 1
     createhd:
-      - filename: disk1.vmdk
-        size: <%= ENV['DSD'] %>
+      - filename: <%= ENV['HDPATH'] %>/tcrdb2disk1.vmdk
+        size: 40961
     storagectl:
       - name: SATA Controller
         portcount: 1
@@ -17,9 +15,9 @@ driver:
         port: 1
         device: 0
         type: hdd
-        medium: disk1.vmdk
+        medium: <%= ENV['HDPATH'] %>/tcrdb2disk1.vmdk
   network:
-   - ['private_network', ip: <%= ENV['DSP'] %>]
+   - ['private_network', ip: '10.1.1.43']
 
 provisioner:
   name: chef_zero
@@ -37,10 +35,6 @@ platforms:
 
 suites:
   - name: tcr_db
-    run_list:
-      - recipe[tcr_db2::make_tcr]
     verifier:
       inspec_tests:
         - test/integration/default
-    attributes:
-      DSG: '<%= ENV['DSG'] %>'
