@@ -40,7 +40,7 @@ execute 'pre_tcr' do
 end
 
 # make backup copy of tcr
-copy_file 'copy tcr' do
+copy_file 'copy_tcr' do
   old_file "#{node['db2']['db2user1-home']}/tcr"
   file_ext '.bak'
   not_if { File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
@@ -73,7 +73,7 @@ file "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
 end
 
 # rename tcr
-copy_file 'rename tcr' do
+copy_file 'rename_tcr' do
   old_file "#{node['db2']['db2user1-home']}/tcr"
   file_ext '.bak'
   file_ext1 '.orig'
