@@ -37,7 +37,7 @@ execute 'pre_rpt' do
 end
 
 # make backup copy of rpt
-copy_file 'copy rpt' do
+copy_file 'copy_rpt' do
   old_file "#{node['db2']['db2user1-home']}/rpt"
   file_ext '.bak'
   not_if { File.exist?("#{node['db2']['db2user1-home']}/rpt.orig") }
