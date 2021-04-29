@@ -34,6 +34,9 @@ node.default['db2']['db2user1-group']  = 'omnadm'
 node.default['db2']['db2user1-home']   = "/home/#{node['db2']['db2user1-user']}"
 node.default['db2']['db2_password']    = 'P@ssw0rd'
 node.default['db2']['db2_epassword']   = '$1$xaVDw1NS$NmyxP1YTnqenTM8LmEO2f.'
+
+package node['tcr_db2']['packages']
+
 include_recipe 'db2::default'
 include_recipe 'db2::installfp'
 include_recipe 'db2::instance'
