@@ -1,21 +1,9 @@
-#
-# Cookbook Name:: tcr_db2
+# Cookbook:: tcr_db2
 # Recipe:: create_tcrdb
 #
-# Copyright 2019, Ed Overton
+# Copyright:: 2021, Ed Overton
 #
-# Licensed under the Apache License, Version 2.0 (the 'License');
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an 'AS IS' BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+
 set_hostname 'set chefsrv server' do
   action :run
 end
@@ -36,14 +24,14 @@ execute 'pre_tcr' do
   command "echo 'TCR'> #{node['db2']['db2user1-home']}/tcr"
   user  node['db2']['db2user1-user']
   group node['db2']['db2user1-group']
-  not_if { File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
+  not_if { ::File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
 end
 
 # make backup copy of tcr
 copy_file 'copy_tcr' do
   old_file "#{node['db2']['db2user1-home']}/tcr"
   file_ext '.bak'
-  not_if { File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
+  not_if { ::File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
   action :copy
 end
 
@@ -55,7 +43,7 @@ template "#{binary_dir}/#{node['tcr_db2']['tcr_sql']}" do
   )
   mode '0644'
   not_if "db2 list database directory | grep #{node['db2']['instance_name']}", user: node['db2']['db2inst1-user']
-  not_if { File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
+  not_if { ::File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
 end
 
 execute 'tcr_schema' do
@@ -64,7 +52,7 @@ execute 'tcr_schema' do
   cwd "#{node['db2']['db2inst1-home']}/sqllib/bin"
   user node['db2']['db2inst1-user']
   not_if "db2 list database directory | grep #{node['db2']['instance_name']}", user: node['db2']['db2inst1-user']
-  not_if { File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
+  not_if { ::File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
   action :run
 end
 
@@ -77,6 +65,6 @@ copy_file 'rename_tcr' do
   old_file "#{node['db2']['db2user1-home']}/tcr"
   file_ext '.bak'
   file_ext1 '.orig'
-  not_if { File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
+  not_if { ::File.exist?("#{node['db2']['db2user1-home']}/tcr.orig") }
   action :move
 end

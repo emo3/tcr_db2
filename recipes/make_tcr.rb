@@ -1,25 +1,13 @@
-#
-# Cookbook Name:: tcr_db2
+# Cookbook:: tcr_db2
 # Recipe:: make_tcr
 #
-# Copyright 2019, Ed Overton
-#
-# Licensed under the Apache License, Version 2.0 (the 'License');
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an 'AS IS' BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright:: 2021, Ed Overton
 #
 ######
 # used the following to create password
 # openssl passwd -1 -salt $(openssl rand -base64 6) P@ssw0rd
 ######
+
 # This will setup my values for TCR
 node.default['db2']['port_number']     = '60008'
 node.default['db2']['instance_name']   = 'TCRDB'
