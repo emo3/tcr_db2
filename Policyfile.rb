@@ -15,4 +15,5 @@ run_list 'tcr_db2::make_tcr'
 # Specify a custom source for a single cookbook:
 cookbook 'tcr_db2',      path: '.'
 cookbook 'db2',          git: 'https://github.com/emo3/db2.git'
+# cookbook 'db2',          path: '~/chef/cookbooks/db2'
 cookbook 'server_utils', git: 'https://github.com/emo3/server_utils.git'
